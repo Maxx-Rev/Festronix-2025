@@ -12,7 +12,7 @@
     background: black;
     height: 100%;
     width: 100%;
-    touch-action: manipulation;
+    touch-action: manipulation; /* allow taps/long press */
   }
   canvas {
     display: block;
@@ -36,7 +36,7 @@
 
 <div id="instructions">
 Click/tap to place stars. <br>
-Hold <b>Shift</b> or double-tap to start a new line.
+Hold <b>Shift</b> (desktop) or <b>long press</b> (mobile) to start a new line.
 </div>
 <canvas id="background"></canvas>
 <canvas id="drawing"></canvas>
@@ -63,8 +63,9 @@ for(let i=0; i<200; i++){
 
 // Constellation lines
 let constellationLines = [];
-let currentLine = []; 
-let lastTap = 0; // for double-tap detection
+let currentLine = [];
+let longPressTimer = null;
+let isLongPress = false;
 
 function addStar(x, y, isNewLine=false){
     const newStar = {x, y};
@@ -80,14 +81,27 @@ function addStar(x, y, isNewLine=false){
     }
 }
 
-// Handle clicks/taps
+// Desktop click
 drawCanvas.addEventListener('click', (e)=>{
-    const now = Date.now();
-    const isDoubleTap = (now - lastTap) < 300; // 300ms threshold
-    lastTap = now;
+    if(e.pointerType === "mouse"){ // desktop only
+        const isNewLine = e.shiftKey;
+        addStar(e.clientX, e.clientY, isNewLine);
+    }
+});
 
-    const isNewLine = e.shiftKey || isDoubleTap; // Shift OR double-tap
-    addStar(e.clientX, e.clientY, isNewLine);
+// Mobile touch
+drawCanvas.addEventListener('touchstart', (e)=>{
+    e.preventDefault();
+    isLongPress = false;
+    longPressTimer = setTimeout(()=>{
+        isLongPress = true;
+    }, 500); // 500ms threshold
+}, {passive:false});
+
+drawCanvas.addEventListener('touchend', (e)=>{
+    clearTimeout(longPressTimer);
+    const touch = e.changedTouches[0];
+    addStar(touch.clientX, touch.clientY, isLongPress);
 });
 
 // Draw star
@@ -100,7 +114,7 @@ function drawStar(point){
     drawCtx.fill();
 }
 
-// Draw line between stars
+// Draw line
 function drawLine(p1, p2){
     drawCtx.strokeStyle = 'rgba(255,255,255,0.8)';
     drawCtx.lineWidth = 2;
