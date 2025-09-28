@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constellation Drawing</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+    height: 100%;
+    width: 100%;
+    touch-action: manipulation;
+  }
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  #instructions {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div id="instructions">
+Click/tap to place stars. <br>
+Hold <b>Shift</b> or double-tap to start a new line.
+</div>
+<canvas id="background"></canvas>
+<canvas id="drawing"></canvas>
+
+<script>
+const bgCanvas = document.getElementById('background');
+const bgCtx = bgCanvas.getContext('2d');
+const drawCanvas = document.getElementById('drawing');
+const drawCtx = drawCanvas.getContext('2d');
+
+bgCanvas.width = drawCanvas.width = window.innerWidth;
+bgCanvas.height = drawCanvas.height = window.innerHeight;
+
+// Background stars
+let stars = [];
+for(let i=0; i<200; i++){
+    stars.push({
+        x: Math.random()*bgCanvas.width,
+        y: Math.random()*bgCanvas.height,
+        size: Math.random()*2,
+        speed: Math.random()*0.5 + 0.2
+    });
+}
+
+// Constellation lines
+let constellationLines = [];
+let currentLine = []; 
+let lastTap = 0; // for double-tap detection
+
+function addStar(x, y, isNewLine=false){
+    const newStar = {x, y};
+    drawStar(newStar);
+
+    if(isNewLine || currentLine.length === 0){
+        currentLine = [newStar];
+        constellationLines.push(currentLine);
+    } else {
+        const lastStar = currentLine[currentLine.length - 1];
+        drawLine(lastStar, newStar);
+        currentLine.push(newStar);
+    }
+}
+
+// Handle clicks/taps
+drawCanvas.addEventListener('click', (e)=>{
+    const now = Date.now();
+    const isDoubleTap = (now - lastTap) < 300; // 300ms threshold
+    lastTap = now;
+
+    const isNewLine = e.shiftKey || isDoubleTap; // Shift OR double-tap
+    addStar(e.clientX, e.clientY, isNewLine);
+});
+
+// Draw star
+function drawStar(point){
+    drawCtx.fillStyle = 'white';
+    drawCtx.shadowBlur = 10;
+    drawCtx.shadowColor = 'white';
+    drawCtx.beginPath();
+    drawCtx.arc(point.x, point.y, 4, 0, Math.PI*2);
+    drawCtx.fill();
+}
+
+// Draw line between stars
+function drawLine(p1, p2){
+    drawCtx.strokeStyle = 'rgba(255,255,255,0.8)';
+    drawCtx.lineWidth = 2;
+    drawCtx.shadowBlur = 5;
+    drawCtx.shadowColor = 'white';
+    drawCtx.beginPath();
+    drawCtx.moveTo(p1.x, p1.y);
+    drawCtx.lineTo(p2.x, p2.y);
+    drawCtx.stroke();
+}
+
+// Animate background stars
+function animateBackground(){
+    bgCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+    stars.forEach(star => {
+        star.y += star.speed;
+        if(star.y > bgCanvas.height) star.y = 0;
+        bgCtx.fillStyle = 'white';
+        bgCtx.beginPath();
+        bgCtx.arc(star.x, star.y, star.size, 0, Math.PI*2);
+        bgCtx.fill();
+    });
+
+    requestAnimationFrame(animateBackground);
+}
+
+animateBackground();
+
+// Resize
+window.addEventListener('resize', ()=>{
+    bgCanvas.width = drawCanvas.width = window.innerWidth;
+    bgCanvas.height = drawCanvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>
